@@ -15,11 +15,12 @@ import za.co.fnb.dcre.platform.batch.HeartbeatWriter;
 import za.co.fnb.dcre.platform.batch.OutcomeSeamListener;
 
 /**
- * MPX job shape (single tasklet, IXR clone): readerStep ingests one pain.012
- * acceptance leg per launch into the reply-type's response table. Identifying
- * JobParameter: arrival.id (R-16); the reply.type launch arg selects the table.
- * Runs on the default SERIALIZABLE isolation (no READ COMMITTED override; only
- * PRG carries RC per SCRUM-90).
+ * MPX job shape (single tasklet, IXR clone): readerStep ingests one pain.012 PBSR
+ * acceptance leg per launch into man_pbsr_resp. Identifying JobParameter:
+ * arrival.id (R-16). SCRUM-91: there is NO reply.type launch arg, the leg is
+ * fixed by the service (mirror of collections PXR). Runs on the default
+ * SERIALIZABLE isolation (no READ COMMITTED override; only PRG carries RC per
+ * SCRUM-90).
  */
 @Configuration
 public class MpxJobConfig {

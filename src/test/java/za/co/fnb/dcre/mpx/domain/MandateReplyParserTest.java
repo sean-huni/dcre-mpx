@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Pure-parser proofs against the synthetic pain.012 leg shape (fint_sim_reply.py):
+ * Pure-parser proofs against the synthetic pain.012 PBSR leg shape (fint_sim_reply.py):
  * the four correlation/verdict fields are mandatory, Rsn is optional, and the
  * current contract carries no EndToEndId so e2e parses NULL (nullable-but-expected,
  * captured opportunistically when a future reply shape does carry it).
@@ -17,7 +17,7 @@ class MandateReplyParserTest {
 
     @Test
     void parsesAcceptLegWithoutReasonAndWithoutE2e() {
-        final String text = ManReplyFixture.leg("ISR", "OUTMSG-1", "MREQ-1", "MND-1", "ACCP", null);
+        final String text = ManReplyFixture.leg("PBSR", "OUTMSG-1", "MREQ-1", "MND-1", "ACCP", null);
 
         final ManReply reply = MandateReplyParser.parse(text, "fnbcc01_OUTMSG-1_ISR.xml");
 
@@ -66,11 +66,11 @@ class MandateReplyParserTest {
     @Test
     void rejectsReplyMissingMandateRequestId() {
         final String text = """
-                <ISR>
+                <PBSR>
                   <OrgnlMsgId>OUTMSG-5</OrgnlMsgId>
                   <MndtId>MND-5</MndtId>
                   <MndtSts>ACCP</MndtSts>
-                </ISR>
+                </PBSR>
                 """;
 
         assertThrows(IllegalArgumentException.class,

@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import za.co.fnb.dcre.mpx.AbstractCrdbIT;
 import za.co.fnb.dcre.mpx.ManOutboundSourceTable;
 import za.co.fnb.dcre.mpx.ManReplyFixture;
 
@@ -27,17 +28,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Driving the real {@link ReaderService} needs a Spring context, so this is a
  * {@code @SpringBootTest} in the {@code MpxReaderIT} mould, NOT a subclass of the
  * non-Spring migration harness AbstractCrdbIT (whose whole point is that Liquibase has
- * NOT run yet). It shares MpxReaderIT's container rather than starting a fifth CRDB:
- * the static-container pattern never stops them, and the fixtures use disjoint keys.
+ * NOT run yet). It only borrows that harness's singleton CRDB container, the ONE this
+ * module starts (SCRUM-91 review R6); isolation comes from disjoint fixture keys.
  */
 @SpringBootTest(properties = {"spring.batch.job.enabled=false"})
 class DelayedAuthPbsrIT {
 
     @DynamicPropertySource
     static void props(final DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MpxReaderIT.CRDB::getJdbcUrl);
-        registry.add("spring.datasource.username", MpxReaderIT.CRDB::getUsername);
-        registry.add("spring.datasource.password", MpxReaderIT.CRDB::getPassword);
+        registry.add("spring.datasource.url", AbstractCrdbIT.CRDB::getJdbcUrl);
+        registry.add("spring.datasource.username", AbstractCrdbIT.CRDB::getUsername);
+        registry.add("spring.datasource.password", AbstractCrdbIT.CRDB::getPassword);
     }
 
     @Autowired

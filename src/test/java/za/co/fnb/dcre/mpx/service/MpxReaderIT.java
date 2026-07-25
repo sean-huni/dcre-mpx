@@ -13,8 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.CockroachContainer;
-import org.testcontainers.utility.DockerImageName;
+import za.co.fnb.dcre.mpx.AbstractCrdbIT;
 import za.co.fnb.dcre.mpx.ManOutboundSourceTable;
 import za.co.fnb.dcre.mpx.ManReplyFixture;
 
@@ -42,18 +41,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 @SpringBootTest(properties = {"spring.batch.job.enabled=false"})
 class MpxReaderIT {
 
-    static final CockroachContainer CRDB =
-            new CockroachContainer(DockerImageName.parse("cockroachdb/cockroach:v26.2.3"));
-
-    static {
-        CRDB.start();
-    }
 
     @DynamicPropertySource
     static void props(final DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", CRDB::getJdbcUrl);
-        registry.add("spring.datasource.username", CRDB::getUsername);
-        registry.add("spring.datasource.password", CRDB::getPassword);
+        registry.add("spring.datasource.url", AbstractCrdbIT.CRDB::getJdbcUrl);
+        registry.add("spring.datasource.username", AbstractCrdbIT.CRDB::getUsername);
+        registry.add("spring.datasource.password", AbstractCrdbIT.CRDB::getPassword);
     }
 
     @Autowired

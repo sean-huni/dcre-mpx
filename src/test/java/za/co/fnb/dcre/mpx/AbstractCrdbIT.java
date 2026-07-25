@@ -21,14 +21,23 @@ import java.util.UUID;
  * fixture and a legacy-end-state fixture never see each other's Liquibase
  * history (testing.md: migration changes are tested against legacy database
  * states, not only fresh containers).
+ *
+ * <p>SINGLETON CONTAINER (SCRUM-91 review R6): {@link #CRDB} is the ONE CockroachDB
+ * this whole module's test run starts, and every Spring suite points its
+ * {@code @DynamicPropertySource} here rather than declaring a container of its own.
+ * Four containers per service was 12 per three-service run, and the
+ * {@code static { start() }} pattern never stops them (testing.md: exited DB
+ * containers accumulate until the Docker VM stalls). The suites are isolated by
+ * DISJOINT fixture keys, not by separate databases, except this harness which mints
+ * a virgin database per test because a migration proof needs one.
  */
-abstract class AbstractCrdbIT {
+public abstract class AbstractCrdbIT {
 
     private static final String CHANGELOG = "classpath:db/changelog/db.changelog-master.xml";
     private static final String HISTORY_TABLE = "mpx_databasechangelog";
     private static final String HISTORY_LOCK_TABLE = "mpx_databasechangeloglock";
 
-    static final CockroachContainer CRDB =
+    public static final CockroachContainer CRDB =
             new CockroachContainer(DockerImageName.parse("cockroachdb/cockroach:v26.2.3"));
 
     static {

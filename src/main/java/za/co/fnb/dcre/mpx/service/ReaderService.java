@@ -6,8 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import za.co.fnb.dcre.mpx.data.repo.ManOutboundLookupDao;
-import za.co.fnb.dcre.mpx.data.repo.ManRespDao;
+import za.co.fnb.dcre.mpx.data.model.ManPbsrRespEntity;
+import za.co.fnb.dcre.mpx.data.repo.ManRespRepo;
 import za.co.fnb.dcre.mpx.domain.ManReply;
 import za.co.fnb.dcre.mpx.domain.MandateReplyParser;
 
@@ -49,19 +49,21 @@ import java.util.UUID;
 @Service
 public class ReaderService {
 
-    /** The ONE response table this service owns. MPX is the PBSR leg (mirror of collections PXR). */
-    public static final String TARGET_TABLE = "man_pbsr_resp";
+    /**
+     * The ONE response table this service owns. MPX is the PBSR leg (mirror of
+     * collections PXR). This is an ALIAS of the single literal on the entity, not a
+     * second one: the guarded insert reads the same constant, so the leg assertion
+     * and the write target cannot drift apart (SCRUM-91 review R1).
+     */
+    public static final String TARGET_TABLE = ManPbsrRespEntity.TABLE;
 
     private static final Logger log = LoggerFactory.getLogger(ReaderService.class);
 
-    private final ManRespDao respDao;
-    private final ManOutboundLookupDao outboundLookup;
+    private final ManRespRepo respRepo;
     private final TransactionTemplate sliceTx;
 
-    public ReaderService(final ManRespDao respDao, final ManOutboundLookupDao outboundLookup,
-                         final PlatformTransactionManager txManager) {
-        this.respDao = respDao;
-        this.outboundLookup = outboundLookup;
+    public ReaderService(final ManRespRepo respRepo, final PlatformTransactionManager txManager) {
+        this.respRepo = respRepo;
         // Own REQUIRES_NEW transaction per write: a CRDB 40001 abort poisons the
         // surrounding transaction (25P02 on any further statement), so each retry
         // needs a fresh transaction (same shape as the pxr sliced ingest).
@@ -70,12 +72,20 @@ public class ReaderService {
     }
 
     /**
-     * @return 1 when the reply is ingested (or already stood, on replay via ON
-     * CONFLICT), 0 when it is excluded fail-closed on an unknown outbound identity.
+     * @return the number of rows this run INSERTED, which is 1 only on a reply's
+     * FIRST arrival. It is 0 in two distinct cases the caller cannot tell apart:
+     * the reply was excluded fail-closed on an unknown outbound identity (nothing
+     * was written and nothing stands), or the identity (response_file, mndt_req_id)
+     * already stood so ON CONFLICT DO NOTHING wrote nothing on a replay. The value
+     * lands in the JobExecutionContext as {@code "rows"}, where that conflation is
+     * live: {@code rows=0} is NOT evidence of a missing row, and the exclusion is
+     * distinguishable only by the {@code reason=UNKNOWN_OUTBOUND_MSG} WARN. Neither
+     * case fails the job: an exclusion is the fail-closed contract and a replay is
+     * the resume no-op (SCRUM-91 review R4).
      */
     public int ingest(final String fileText, final String responseFile) {
         final ManReply reply = MandateReplyParser.parse(fileText, responseFile);
-        final Optional<UUID> outbound = outboundLookup.findByOutMsgId(reply.orgnlMsgId());
+        final Optional<UUID> outbound = respRepo.findOutboundIdByOutMsgId(reply.orgnlMsgId());
         if (outbound.isEmpty()) {
             log.warn("excluded stage=MPX mndtReqId={} reason=UNKNOWN_OUTBOUND_MSG orgnlMsgId={} file={}",
                     reply.mndtReqId(), reply.orgnlMsgId(), responseFile);
@@ -86,7 +96,9 @@ public class ReaderService {
 
     /** One reply row = one committed unit: fresh REQUIRES_NEW tx per bounded-retry attempt. */
     private int writeSlice(final String responseFile, final ManReply reply) {
+        final ManPbsrRespEntity row = ManPbsrRespEntity.of(responseFile, reply.orgnlMsgId(), reply.mndtId(),
+                reply.mndtReqId(), reply.e2e(), reply.status(), reply.reason());
         return CrdbRetry.run("ingest leg=PBSR file=%s".formatted(responseFile),
-                () -> sliceTx.execute(status -> respDao.insertGuarded(responseFile, reply)));
+                () -> sliceTx.execute(status -> respRepo.insertGuarded(row)));
     }
 }

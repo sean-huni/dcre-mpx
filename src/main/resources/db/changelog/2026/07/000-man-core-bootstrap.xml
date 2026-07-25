@@ -8,7 +8,11 @@
     <!-- Shared-core bootstrap guards for dcre_man (house bootstrap-guard rule):
          whichever M-service boots first mints these shapes, MARK_RAN converges
          the rest, and the canonical owners arrive with their services (R-04):
-         mandate projection = MSR (T13), account master consolidation = M11.
+         account master consolidation = M11. The `mandate` projection below has NO
+         surviving writer: SCRUM-91 deletes MSR in this same wave and replaces the
+         projection with the MRG-derived mnd_ext_status + mandate_effective_status
+         views, and Task 10 drops the table. It stays here only so a boot before
+         that task still converges on one shape.
          FK relationships are deliberately SHAPE-ONLY (columns + indexes, no DB
          constraints) so guarded pre-creates converge from any service order.
          This file is byte-equivalent in SHAPE to the mrr/mrw copy; only the
@@ -98,8 +102,10 @@
     </changeSet>
 
     <changeSet id="mpx-000-mandate" author="dcre">
-        <!-- Mandate PROJECTION shape (spec section 2); MSR is the sole writer
-             (R-10, ruling note 2). R-20/F28-F29: at-most-one EFFECTIVELY ACTIVE
+        <!-- Mandate PROJECTION shape (spec section 2). SCRUM-91 retires it: MSR,
+             its sole writer, is deleted in this same wave and the derived
+             mnd_ext_status + mandate_effective_status views in MRG replace it
+             (Task 10 drops this table). R-20/F28-F29: at-most-one EFFECTIVELY ACTIVE
              mandate per ref is an effective-WINDOW rule enforced app-side, so
              mandate_ref carries an index, not a DB UNIQUE constraint. -->
         <preConditions onFail="MARK_RAN">

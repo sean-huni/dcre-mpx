@@ -70,6 +70,23 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
+    </changeSet>
+
+    <!-- The unique constraint is its OWN changeset guarded on its OWN schema state
+         (persistence.md: guard each step on the schema state it transforms, not on
+         file order). Folded into the createTable changeset above, the single
+         tableExists gate MARK_RANs BOTH statements on a database that holds the
+         table WITHOUT the constraint (a half-migrated MAR state), and then every
+         runtime ON CONFLICT (response_file, mndt_req_id) dies with "there is no
+         unique or exclusion constraint matching the ON CONFLICT specification":
+         the zero-duplicate idempotency guarantee silently gone. A UNIQUE constraint
+         materialises as an index of the same name, so indexExists is the schema-state
+         probe for it. Proven by the half-migrated fixture in MpxLegacyStateIT
+         (SCRUM-91 review R5). -->
+    <changeSet id="mpx-001-man-pbsr-resp-uq" author="dcre">
+        <preConditions onFail="MARK_RAN">
+            <not><indexExists tableName="man_pbsr_resp" indexName="uq_man_pbsr_resp_file_mndt_req"/></not>
+        </preConditions>
         <addUniqueConstraint tableName="man_pbsr_resp" columnNames="response_file, mndt_req_id"
                              constraintName="uq_man_pbsr_resp_file_mndt_req"/>
     </changeSet>
