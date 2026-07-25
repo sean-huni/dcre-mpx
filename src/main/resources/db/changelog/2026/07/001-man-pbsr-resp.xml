@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- SCRUM-91: MPX is the single writer of man_pbsr_resp, the pain.012 PBSR
+         acceptance-leg response table, and of NOTHING else. The isr and sbsr
+         tables moved out with their own services (MIX, MSX): one reader per leg,
+         the exact mirror of the collections ixr/sxr/pxr fleet. The merged
+         three-table changelog was MAR's shape and is the deviation this refactor
+         removes, so the reply.type launch arg is gone too: the leg is a
+         compile-time property of the service.
+
+         CHANGESET IDENTITY (persistence.md): this table changed owning service
+         (mar -> mpx) and changelog filename, so its identity (id, author,
+         filename) is new while the TABLE may already exist on a live DB from
+         MAR's run. The MARK_RAN tableExists guard below is kept byte-identical to
+         MAR's for exactly that reason: on a migrated DB the changeset MARK_RANs
+         and never re-executes DDL, on a fresh DB it creates the table. MPX has its
+         own mpx_databasechangelog history, so nothing is inherited from MAR.
+
+         DELAYED AUTHENTICATION, the one behavior only this leg has (documented
+         here and in NO other leg's changelog): the debtor may authenticate late,
+         so a SECOND PBSR arrives for the SAME mandate under a DISTINCT file stem
+         (<stem>-AUTH_PBSR.xml). BOTH rows must persist, and they do precisely
+         because the UNIQUE constraint below is the FULL business identity
+         (response_file, mndt_req_id) and not mndt_req_id alone: a distinct file is
+         a distinct row, so the earlier PDNG arrival and the later ACCP arrival
+         stand side by side and the mnd_pbsr_pick precedence view selects the later
+         one. A key narrower than the entity's uniqueness tuple would silently
+         swallow the authentication (engineering.md idempotency-key rule).
+
+         One row per reply file (a pain.012 message carries exactly ONE mandate,
+         unlike the collections ISR fan-out). Replay-safe and resume-safe via that
+         same UNIQUE (response_file, mndt_req_id), so the guarded
+         INSERT ... ON CONFLICT (response_file, mndt_req_id) DO NOTHING is a
+         zero-duplicate no-op on re-run (never UPSERT on the PK; CRDB resolves
+         UPSERT on PK only, persistence.md).
+         orgnl_msg_id = the outbound MsgId MPX correlates to man_outbound.out_msg_id
+         (fail-closed: an unknown outbound identity is WARNed and excluded, never
+         guessed, SCRUM-60 canon). mndt_id = the MndtId (mandate_ref), mndt_req_id =
+         the MRR-minted MndtReqId. e2e is nullable-but-forward-compatible: the
+         current synthetic pain.012 contract (A-60) carries no EndToEndId element,
+         so it is parsed opportunistically and stays NULL until the reply shape
+         carries it. status/reason are the literal MndtSts/Rsn code values (R-21:
+         code values, never enum ordinals). -->
+
+    <changeSet id="mpx-001-man-pbsr-resp" author="dcre">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="man_pbsr_resp"/></not>
+        </preConditions>
+        <createTable tableName="man_pbsr_resp">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="response_file" type="VARCHAR(128)"><constraints nullable="false"/></column>
+            <column name="orgnl_msg_id" type="VARCHAR(35)"><constraints nullable="false"/></column>
+            <column name="mndt_id" type="VARCHAR(35)"><constraints nullable="false"/></column>
+            <column name="mndt_req_id" type="VARCHAR(35)"><constraints nullable="false"/></column>
+            <column name="e2e" type="VARCHAR(35)"/>
+            <column name="status" type="VARCHAR(8)"><constraints nullable="false"/></column>
+            <column name="reason" type="VARCHAR(8)"/>
+            <column name="version" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="man_pbsr_resp" columnNames="response_file, mndt_req_id"
+                             constraintName="uq_man_pbsr_resp_file_mndt_req"/>
+    </changeSet>
+
+</databaseChangeLog>
