@@ -101,4 +101,4 @@ The image is `eclipse-temurin:25-jre-alpine`. AGT launches MPX as an ephemeral K
 
 ## Related repositories
 
-Mandates DAG: dcre-mrr, dcre-mrv, dcre-maf, dcre-mit, dcre-mir, dcre-mrw, dcre-mix, dcre-msx, dcre-mpx (this repo), dcre-mrg. Orchestrator: dcre-agt. Collections counterparts this fleet mirrors: dcre-ixr, dcre-sxr, dcre-pxr. Platform libs: dcre-platform-model, dcre-platform-files, dcre-platform-batch, dcre-platform-persistence. Support: dcre-infra, dcre-design-register, dcre-fixture-toolkit.
+Mandates DAG: dcre-mrr, dcre-mrv, dcre-mas, dcre-mit, dcre-mir, dcre-mrw, dcre-mix, dcre-msx, dcre-mpx (this repo), dcre-mrg. Orchestrator: dcre-agt. Collections counterparts this fleet mirrors: dcre-ixr, dcre-sxr, dcre-pxr. Platform libs: dcre-platform-model, dcre-platform-files, dcre-platform-batch, dcre-platform-persistence. Support: dcre-infra, dcre-design-register, dcre-fixture-toolkit.
