@@ -16,7 +16,7 @@ spring:
 dcre:
   # Persistent JDBC JobRepository prefix (BatchJdbcConfig reads via BatchProperties);
   # MPX runs on the default SERIALIZABLE isolation (no READ COMMITTED override; only
-  # PRG carries RC per SCRUM-90).
+  # CRG, the collections report generator, carries RC per SCRUM-90).
   batch:
     table-prefix: MPX_BATCH_
   # Second read-write datasource for the HeartbeatWriter liveness stamp on

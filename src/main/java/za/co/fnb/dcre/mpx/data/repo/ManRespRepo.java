@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /**
  * Sole owner of the {@code man_pbsr_resp} write, in the sibling shape every other
- * reader uses (ixr IsrRespRepo, mrw ManOutboundRepo): Spring Data JDBC
+ * reader uses (cix IsrRespRepo, mrw ManOutboundRepo): Spring Data JDBC
  * CrudRepository over an entity extending BaseEntity, with the guarded insert as
  * a native {@code @Query}. The table is not injectable and there is no leg
  * branching: the leg is a compile-time property of the service (SCRUM-91; the
@@ -45,7 +45,7 @@ public interface ManRespRepo extends CrudRepository<ManPbsrRespEntity, UUID> {
     /**
      * Fail-closed correlation against {@code man_outbound}, the MRW-owned outbound
      * registry (single writer R-04). MPX NEVER ships the man_outbound changeset in
-     * its own changelog (same discipline as IXR vs the crw_* tables); at runtime it
+     * its own changelog (same discipline as CIX vs the crw_* tables); at runtime it
      * lives in the same dcre_man database MRW populates, so MPX reads it directly.
      * {@code out_msg_id} is UNIQUE, so a resolve returns at most one id.
      *

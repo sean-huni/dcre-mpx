@@ -24,7 +24,7 @@ import za.co.fnb.dcre.platform.persistence.BaseEntity;
 @Table(ManPbsrRespEntity.TABLE)
 public class ManPbsrRespEntity extends BaseEntity {
 
-    /** The ONE response table this service owns. MPX is the PBSR leg (mirror of collections PXR). */
+    /** The ONE response table this service owns. MPX is the PBSR leg (mirror of collections CPX). */
     public static final String TABLE = "man_pbsr_resp";
 
     private String responseFile;
