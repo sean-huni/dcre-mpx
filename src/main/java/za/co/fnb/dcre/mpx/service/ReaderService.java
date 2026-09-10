@@ -21,8 +21,8 @@ import java.util.UUID;
  *
  * <p>SCRUM-91: the leg is a compile-time property of the service, NOT a
  * {@code reply.type} launch arg. MPX is the PBSR leg reader, the exact mirror of
- * collections PXR; MIX and MSX are its ISR and SBSR twins. That triplication IS
- * the fleet pattern (ixr/sxr/pxr); the merged three-table reader was MAR's shape
+ * collections CPX; MIX and MSX are its ISR and SBSR twins. That triplication IS
+ * the fleet pattern (cix/csx/cpx); the merged three-table reader was MAR's shape
  * and is the deviation this refactor removes.
  *
  * <p>DELAYED AUTHENTICATION, the one behavior only this leg has: the debtor may
@@ -51,7 +51,7 @@ public class ReaderService {
 
     /**
      * The ONE response table this service owns. MPX is the PBSR leg (mirror of
-     * collections PXR). This is an ALIAS of the single literal on the entity, not a
+     * collections CPX). This is an ALIAS of the single literal on the entity, not a
      * second one: the guarded insert reads the same constant, so the leg assertion
      * and the write target cannot drift apart (SCRUM-91 review R1).
      */
@@ -66,7 +66,7 @@ public class ReaderService {
         this.respRepo = respRepo;
         // Own REQUIRES_NEW transaction per write: a CRDB 40001 abort poisons the
         // surrounding transaction (25P02 on any further statement), so each retry
-        // needs a fresh transaction (same shape as the pxr sliced ingest).
+        // needs a fresh transaction (same shape as the cpx sliced ingest).
         this.sliceTx = new TransactionTemplate(txManager);
         this.sliceTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }

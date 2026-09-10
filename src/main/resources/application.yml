@@ -16,7 +16,7 @@ spring:
 dcre:
   # Persistent JDBC JobRepository prefix (BatchJdbcConfig reads via BatchProperties);
   # MPX runs on the default SERIALIZABLE isolation (no READ COMMITTED override; only
-  # PRG carries RC per SCRUM-90).
+  # CRG, the collections report generator, carries RC per SCRUM-90).
   batch:
     table-prefix: MPX_BATCH_
   # Second read-write datasource for the HeartbeatWriter liveness stamp on
@@ -24,4 +24,4 @@ dcre:
   agtops-db-url: ${DCRE_AGTOPS_DB_URL:jdbc:postgresql://localhost:26257/agt_ops?sslmode=disable}
   agtops-db-user: ${DCRE_AGTOPS_DB_USER:root}
   agtops-db-password: ${DCRE_AGTOPS_DB_PASSWORD:}
-  exchange-root: ${DCRE_EXCHANGE_ROOT:../../../../../infra/dcre-infra/exchange}
+  exchange-root: ${DCRE_EXCHANGE_ROOT:../../../../../../infra/dcre-infra/exchange}

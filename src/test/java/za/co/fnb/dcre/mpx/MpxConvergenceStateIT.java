@@ -5,16 +5,19 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * SCRUM-91 changeset-identity guard: man_pbsr_resp changed owning service (mar -> mpx) and
- * changelog filename, so on a live DB the table already exists. The guarded changeset must
- * MARK_RAN, never re-execute DDL. Four fixtures: fresh DB, legacy end-state (table already
- * present from mar), half-migrated (table without the unique constraint), double-apply.
+ * SCRUM-107 convergence proofs for the v1 baseline. man_pbsr_resp has TWO creators on one
+ * dcre_man: this service's 001-man-pbsr-resp.xml, and MRG's 004-man-views.xml changeset
+ * 004-bootstrap-man-pbsr-resp-mrg, which pre-creates table and unique constraint so
+ * mnd_pbsr_pick has a source. Nothing serializes the ten M-services' Liquibase runs, so MPX
+ * must converge whichever order it arrives in and must never re-execute DDL. Four fixtures:
+ * MPX first (empty database), MRG first (table and constraint already stand), a table
+ * standing WITHOUT the constraint, and double-apply.
  */
-class MpxLegacyStateIT extends AbstractCrdbIT {
+class MpxConvergenceStateIT extends AbstractCrdbIT {
 
-    /** The shape MAR's mar-001-man-pbsr-resp left behind on every already-migrated database. */
-    private static final String LEGACY_PBSR_TABLE = """
-            CREATE TABLE IF NOT EXISTS man_pbsr_resp (
+    /** The shape MRG's 004-bootstrap-man-pbsr-resp-mrg leaves behind when it wins the race. */
+    private static final String PRE_CREATED_PBSR_TABLE = """
+            CREATE TABLE man_pbsr_resp (
               id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
               response_file VARCHAR(128) NOT NULL, orgnl_msg_id VARCHAR(35) NOT NULL,
               mndt_id VARCHAR(35) NOT NULL, mndt_req_id VARCHAR(35) NOT NULL,
@@ -25,15 +28,15 @@ class MpxLegacyStateIT extends AbstractCrdbIT {
               CONSTRAINT uq_man_pbsr_resp_file_mndt_req UNIQUE (response_file, mndt_req_id))""";
 
     /**
-     * The HALF-MIGRATED shape (SCRUM-91 review R5): the table stands but the unique
-     * constraint does not. One precondition guarding both statements MARK_RANs the
-     * whole changeset here, leaving the runtime ON CONFLICT (response_file,
-     * mndt_req_id) with no constraint to arbitrate on, so the idempotency guarantee
-     * is silently gone. The constraint gets its own changeset guarded on the schema
-     * state IT transforms.
+     * The state that makes the unique constraint its OWN changeset (SCRUM-91 review R5): the
+     * table stands but the constraint does not. One precondition guarding both statements would
+     * MARK_RAN the whole changeset here, leaving the runtime ON CONFLICT (response_file,
+     * mndt_req_id) with no constraint to arbitrate on, so the idempotency guarantee is silently
+     * gone. The constraint is therefore guarded on the schema state IT transforms, which is what
+     * this fixture proves, independently of which writer put the table there.
      */
-    private static final String HALF_MIGRATED_PBSR_TABLE = """
-            CREATE TABLE IF NOT EXISTS man_pbsr_resp (
+    private static final String PBSR_TABLE_WITHOUT_CONSTRAINT = """
+            CREATE TABLE man_pbsr_resp (
               id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
               response_file VARCHAR(128) NOT NULL, orgnl_msg_id VARCHAR(35) NOT NULL,
               mndt_id VARCHAR(35) NOT NULL, mndt_req_id VARCHAR(35) NOT NULL,
@@ -49,8 +52,8 @@ class MpxLegacyStateIT extends AbstractCrdbIT {
             ON CONFLICT (response_file, mndt_req_id) DO NOTHING""";
 
     @Test
-    void aHalfMigratedTableGainsTheUniqueConstraintAndOnConflictStillArbitrates() throws Exception {
-        jdbc.execute(HALF_MIGRATED_PBSR_TABLE);
+    void aTableWithoutTheConstraintGainsItAndOnConflictStillArbitrates() throws Exception {
+        jdbc.execute(PBSR_TABLE_WITHOUT_CONSTRAINT);
 
         runLiquibase();
         runLiquibase();
@@ -68,8 +71,8 @@ class MpxLegacyStateIT extends AbstractCrdbIT {
     }
 
     @Test
-    void preCreatedPbsrTableMarksTheChangesetRan() throws Exception {
-        jdbc.execute(LEGACY_PBSR_TABLE);
+    void aTablePreCreatedByMrgMarksTheChangesetRan() throws Exception {
+        jdbc.execute(PRE_CREATED_PBSR_TABLE);
 
         runLiquibase();
         runLiquibase();
@@ -82,7 +85,7 @@ class MpxLegacyStateIT extends AbstractCrdbIT {
     }
 
     @Test
-    void aFreshDatabaseExecutesTheChangesetAndDoubleApplyIsANoOp() throws Exception {
+    void anEmptyDatabaseExecutesTheChangesetAndDoubleApplyIsANoOp() throws Exception {
         runLiquibase();
         runLiquibase();
 

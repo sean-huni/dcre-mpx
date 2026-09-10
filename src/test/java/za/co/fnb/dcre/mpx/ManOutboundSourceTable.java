@@ -9,7 +9,7 @@ import java.util.UUID;
  * reads for reply-to-outbound correlation. MRW owns this DDL (mrw
  * 001-man-outbound.xml); MPX must never ship a man_outbound changeset in its own
  * changelog, so integration tests create a lookalike table via plain JDBC instead
- * (the same pattern IXR uses via CrwSourceTables). Column shapes copied from the
+ * (the same pattern CIX uses via CrwSourceTables). Column shapes copied from the
  * mrw changelog.
  */
 public final class ManOutboundSourceTable {

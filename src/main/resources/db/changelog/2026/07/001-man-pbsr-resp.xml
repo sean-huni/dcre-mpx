@@ -5,21 +5,34 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <!-- SCRUM-91: MPX is the single writer of man_pbsr_resp, the pain.012 PBSR
+    <!-- ===================================================================================
+         V1 BASELINE (SCRUM-107, owner directive 2026-08-08). THIS FILE IS THE FIRST AND ONLY
+         MIGRATION THAT EVER MINTS man_pbsr_resp.
+
+         Every DCRE database is dropped and recreated for the direct cut-over, so there is no
+         historic dcre_man, no MAR-era shape of this table and nothing to retrofit. The
+         apparatus a migration needs is ABSENT BY DESIGN and must not be re-added here: no
+         <validCheckSum>ANY</validCheckSum> (no checksum was ever recorded), no defensive
+         IF NOT EXISTS on the CREATE, no additive addColumn walking an older shape forward.
+         The table's final shape is the createTable below and nothing else edits it.
+
+         THE TWO MARK_RAN GUARDS IN THIS FILE ARE CONVERGENCE GUARDS, NOT RETROFITS. They are
+         load-bearing on a brand-new dcre_man because man_pbsr_resp has TWO creators:
+         this file, and MRG's db/changelog/2026/07/004-man-views.xml changeset
+         004-bootstrap-man-pbsr-resp-mrg, which pre-creates the table (and its unique
+         constraint) so MRG's mnd_pbsr_pick view can compile before MPX has ever run. All ten
+         M-services migrate the one dcre_man with ten independent history + lock tables and
+         NOTHING serializes them, so either writer can genuinely arrive first. Each guard
+         below names the writer it converges with.
+         =================================================================================== -->
+
+    <!-- SCRUM-91: MPX is the single RUNTIME writer of man_pbsr_resp, the pain.012 PBSR
          acceptance-leg response table, and of NOTHING else. The isr and sbsr
          tables moved out with their own services (MIX, MSX): one reader per leg,
-         the exact mirror of the collections ixr/sxr/pxr fleet. The merged
+         the exact mirror of the collections cix/csx/cpx fleet. The merged
          three-table changelog was MAR's shape and is the deviation this refactor
          removes, so the reply.type launch arg is gone too: the leg is a
          compile-time property of the service.
-
-         CHANGESET IDENTITY (persistence.md): this table changed owning service
-         (mar -> mpx) and changelog filename, so its identity (id, author,
-         filename) is new while the TABLE may already exist on a live DB from
-         MAR's run. The MARK_RAN tableExists guard below is kept byte-identical to
-         MAR's for exactly that reason: on a migrated DB the changeset MARK_RANs
-         and never re-executes DDL, on a fresh DB it creates the table. MPX has its
-         own mpx_databasechangelog history, so nothing is inherited from MAR.
 
          DELAYED AUTHENTICATION, the one behavior only this leg has (documented
          here and in NO other leg's changelog): the debtor may authenticate late,
@@ -48,6 +61,10 @@
          code values, never enum ordinals). -->
 
     <changeSet id="mpx-001-man-pbsr-resp" author="dcre">
+        <!-- CONVERGENCE GUARD: MRG's 004-man-views.xml changeset 004-bootstrap-man-pbsr-resp-mrg
+             creates this same table so its mnd_pbsr_pick view has a source, and nothing orders
+             the two services' Liquibase runs. Whichever arrives second MARK_RANs. See the file
+             header. -->
         <preConditions onFail="MARK_RAN">
             <not><tableExists tableName="man_pbsr_resp"/></not>
         </preConditions>
@@ -72,17 +89,18 @@
         </createTable>
     </changeSet>
 
-    <!-- The unique constraint is its OWN changeset guarded on its OWN schema state
-         (persistence.md: guard each step on the schema state it transforms, not on
-         file order). Folded into the createTable changeset above, the single
-         tableExists gate MARK_RANs BOTH statements on a database that holds the
-         table WITHOUT the constraint (a half-migrated MAR state), and then every
-         runtime ON CONFLICT (response_file, mndt_req_id) dies with "there is no
-         unique or exclusion constraint matching the ON CONFLICT specification":
-         the zero-duplicate idempotency guarantee silently gone. A UNIQUE constraint
-         materialises as an index of the same name, so indexExists is the schema-state
-         probe for it. Proven by the half-migrated fixture in MpxLegacyStateIT
-         (SCRUM-91 review R5). -->
+    <!-- CONVERGENCE GUARD, and the reason the constraint is its OWN changeset: it is guarded on
+         its OWN schema state, never on file order (persistence.md). Folded into the createTable
+         changeset above, the single tableExists gate would MARK_RAN BOTH statements against a
+         database where the other creator put the TABLE in place but not yet the CONSTRAINT, and
+         then every runtime ON CONFLICT (response_file, mndt_req_id) dies with "there is no
+         unique or exclusion constraint matching the ON CONFLICT specification": the
+         zero-duplicate idempotency guarantee silently gone. MRG's
+         004-bootstrap-man-pbsr-resp-mrg is the other creator and mints table and constraint
+         together, so this split is what keeps MPX correct if that pairing ever separates, and
+         it costs one precondition. A UNIQUE constraint materialises as an index of the same
+         name, so indexExists is the schema-state probe for it. Proven by the table-without-
+         constraint fixture in MpxLegacyStateIT (SCRUM-91 review R5). -->
     <changeSet id="mpx-001-man-pbsr-resp-uq" author="dcre">
         <preConditions onFail="MARK_RAN">
             <not><indexExists tableName="man_pbsr_resp" indexName="uq_man_pbsr_resp_file_mndt_req"/></not>
