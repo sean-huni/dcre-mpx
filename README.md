@@ -101,4 +101,6 @@ The image is `eclipse-temurin:25-jre-alpine`. AGT launches MPX as an ephemeral K
 
 ## Related repositories
 
-Mandates DAG: dcre-mrr, dcre-mrv, dcre-mas, dcre-mit, dcre-mir, dcre-mrw, dcre-mix, dcre-msx, dcre-mpx (this repo), dcre-mrg. Orchestrator: dcre-agt. Collections counterparts this fleet mirrors: dcre-cix, dcre-csx, dcre-cpx. Platform libs: dcre-platform-model, dcre-platform-files, dcre-platform-batch, dcre-platform-persistence. Support: dcre-infra, dcre-design-register, dcre-fixture-toolkit.
+The complete, current list of live DCRE repositories (stage services, orchestrator, platform libraries, infra and tooling) lives in one place: the [DCRE design register README](https://github.com/sean-huni/dcre-design-register#repositories). Deprecated and archived repositories are deliberately absent from it. This README does not copy that list, so it cannot drift.
+
+- Design register: https://github.com/sean-huni/dcre-design-register (start at `docs/specs/DESIGN-REGISTER.md`; the diagrams in `docs/diagrams/` are the specification)
